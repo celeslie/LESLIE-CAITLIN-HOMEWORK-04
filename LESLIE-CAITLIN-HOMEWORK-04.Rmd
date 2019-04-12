@@ -1,0 +1,112 @@
+---
+title: "LESLIE-CAITLIN-ADA-HOMEWORK-04"
+author: "Caitlin Leslie & Allison Davis"
+date: "April 12, 2019"
+output: html_document
+---
+
+Using Bootstrapping to Estimate Standard Errors and CIs for Linear Models.
+When we initially discussed the central limit theorem and confidence intervals, we showed how we could use bootstrapping to estimate standard errors and confidence intervals around certain parameter values, like the mean. Using bootstrapping, we could also do the same for estimating standard errors and CIs around regression parameters, such as β coefficients.
+
+[1] Using the “KamilarAndCooperData.csv” dataset, run a linear regression looking at log(HomeRange_km2) in relation to log(Body_mass_female_mean) and report your β coeffiecients (slope and intercept).
+
+```{r}
+library(curl)
+f<-curl("https://raw.githubusercontent.com/difiore/ADA-2019/master/KamilarAndCooperData.csv")
+d<-read.csv(f, header=TRUE, sep=",", stringsAsFactors=TRUE)
+head(d)
+
+
+d <- d[complete.cases(d[,c("HomeRange_km2", "Body_mass_female_mean")]),]
+
+d$home <- log(d$HomeRange_km2)
+d$mass <- log(d$Body_mass_female_mean)
+
+head(d)
+
+m<-lm(data=d, home~mass)
+betas <- coef(m)
+betas
+
+```
+
+B1=slope=0.5064
+B0=intercept=8.4862
+
+[2] Then, use bootstrapping to sample from your data 1000 times with replacement, each time fitting the same model and calculating the appropriate coefficients. This generates a sampling distribution for each β coefficient. Plot a histogram of these sampling distributions.
+
+
+
+```{r}
+library(dplyr)
+b <- NULL  # sets up a dummy variable to hold our 10000 simulations
+n <- 137
+for (i in 1:1000) {
+    sim <- d[sample(1:n, size=n, replace = TRUE), ]
+    model<-lm(home~mass, data=sim)
+    b <- rbind.data.frame(b, coef(model))
+    
+}
+
+
+
+names(b) <- c("Intercept", "Slope")
+par(mfrow=c(1,2))
+hist(b$Intercept, xlab="Intercept", ylab="Frequency")
+hist(b$Slope, xlab="Slope", ylab="Frequency")
+
+```
+
+
+
+[3] Estimate the standard error for each of your β coefficients as the standard deviation of the sampling distribution from your bootstrap.
+
+```{r}
+
+se.i<-sd(b$Intercept)
+se.i
+se.s<-sd(b$Slope)
+se.s
+```
+
+[4] Also determine the 95% CI for each of your β coefficients based on the appropriate quantiles from your sampling distribution.
+
+```{r}
+b_i<-b$Intercept
+quantile(b_i, c(0.025, 0.975)) 
+
+
+b_s<-b$Slope
+quantile(b_s, c(0.025, 0.975))
+
+
+```
+
+[5] How does your answer to part [3] compare to the SE estimated from your entire dataset using the formula for standard error implemented in lm()?
+
+```{r}
+se.i 
+se.s # SEs estimated from our bootstrap sample
+
+summary(m)
+
+```
+
+The standard errors estimated from our bootstrap are very close to the standard errors from the linear model for the entire dataset. Therefore, our samples are indicative of the actual population.
+
+[6] How does your answer to part [4] compare to the 95% CI estimated from your entire dataset?
+
+```{r}
+b1_ci<-confint(m, 'mass', level=0.95)
+b1_ci
+b0_ci<-confint(m, '(Intercept)', level=0.95)
+b0_ci #confidence intervals from original dataset
+
+
+b_i<-b$Intercept
+quantile(b_i, c(0.025, 0.975)) 
+b_s<-b$Slope
+quantile(b_s, c(0.025, 0.975)) #confidence intervals from bootstrapping
+
+```
+The 95% confidence intervals for the slope and intercept are almost identical between our bootstrapping model and our original dataset. I think we actually did this...
